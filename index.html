@@ -18,6 +18,7 @@
     uniform mat4 translationMatrix;
 
     uniform bool isChaikin;
+    uniform bool isWireframe;
 
     varying vec3 L, N, V;
 
@@ -46,6 +47,7 @@
     precision mediump float;
 
     uniform bool isChaikin;
+    uniform bool isWireframe;
 
 
     varying vec3 L, N, V;
@@ -68,6 +70,8 @@
 
         if(isChaikin) {
           gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        } else if(isWireframe){
+          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
         } else {
           gl_FragColor = fColor;
         }
@@ -76,6 +80,9 @@
 
     }
   </script>
+  <head>
+    <title>Spheres!</title>
+  </head>
 
   <body onload="main();">
     <div style="display: flex">

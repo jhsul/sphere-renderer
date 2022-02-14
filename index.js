@@ -1,8 +1,10 @@
+const VELOCITY = 0.1;
+
 let canvas = null;
 let gl = null;
 let program = null;
 
-let sphereSubdivisions = 5;
+let sphereSubdivisions = 3;
 let chaikinSubdivisions = 1;
 
 let index = 0;
@@ -11,18 +13,9 @@ let spherePoints = [];
 let sphereNormals = [];
 
 let isAnimating = false;
+let isWireframe = false;
 
 // View bounds for the orthogonal projection matrix
-/*
-const view = {
-  near: -10,
-  far: 10,
-  left: -3.0,
-  right: 3.0,
-  top: 3.0,
-  bottom: -3.0,
-};
-*/
 const view = {
   near: -10,
   far: 10,
@@ -49,6 +42,7 @@ const originalChaikinPoints = [
   vec4(-6, -2, 0, 1),
 ];
 
+// Generate these from the original points every time
 let chaikinPoints = originalChaikinPoints;
 
 // Vectors associated with the lighting (Gourad and Phong)
@@ -193,13 +187,33 @@ const keypressHandler = (e) => {
 
     case "j":
     case "J":
-      chaikinSubdivisions = Math.max(chaikinSubdivisions - 1, 1);
+      if (chaikinSubdivisions === 1) break;
+      chaikinSubdivisions--;
+
+      getChaikinPoints();
+      targetPointIndex = Math.ceil(targetPointIndex / 2);
+      if (targetPointIndex >= chaikinPoints.length) targetPointIndex = 0;
       render();
       break;
 
     case "i":
     case "I":
-      chaikinSubdivisions = Math.min(chaikinSubdivisions + 1, 8);
+      if (chaikinSubdivisions === 8) break;
+      chaikinSubdivisions++;
+      getChaikinPoints();
+      targetPointIndex *= 2;
+      render();
+      break;
+
+    case "a":
+    case "A":
+      isAnimating ^= true;
+      animate();
+      break;
+
+    case "m":
+    case "M":
+      isWireframe ^= true;
       render();
       break;
     default:
@@ -248,12 +262,15 @@ const drawSphere = () => {
   );
 
   const translateMatrix = translate(...spherePosition.slice(0, 4));
-  console.log(translateMatrix);
+  //console.log(translateMatrix);
   gl.uniformMatrix4fv(
     gl.getUniformLocation(program, "translationMatrix"),
     false,
     flatten(translateMatrix)
   );
+
+  const isWireframeLoc = gl.getUniformLocation(program, "isWireframe");
+  gl.uniform1i(isWireframeLoc, isWireframe);
 
   const vBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
@@ -271,11 +288,16 @@ const drawSphere = () => {
   gl.vertexAttribPointer(vNormalPosition, 4, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(vNormalPosition);
 
-  for (let i = 0; i < index; i += 3) gl.drawArrays(gl.TRIANGLES, i, 3);
+  if (isWireframe) {
+    console.log("Drawing wireframe");
+    gl.drawArrays(gl.LINE_LOOP, 0, spherePoints.length);
+  } else {
+    for (let i = 0; i < index; i += 3) gl.drawArrays(gl.TRIANGLES, i, 3);
+  }
 };
 
 const drawChaikin = () => {
-  getChaikinPoints();
+  //getChaikinPoints();
   const isChaikinLoc = gl.getUniformLocation(program, "isChaikin");
   gl.uniform1i(isChaikinLoc, true);
 
@@ -300,4 +322,26 @@ const render = () => {
   //for (let i = 0; i < index; i += 3) gl.drawArrays(gl.TRIANGLES, i, 3);
 };
 
-const animate = () => {};
+const animate = () => {
+  //console.log("animating");
+
+  const targetPoint = chaikinPoints[targetPointIndex];
+
+  console.log(`Targeting ${targetPointIndex}/${chaikinPoints.length}`);
+
+  const u = subtract(targetPoint, spherePosition);
+  const v = scale(VELOCITY, normalize(u));
+
+  const nextPosition = add(spherePosition, v);
+
+  // Check if overshooting (only use x coord lul)
+  if (spherePosition[0] < targetPoint[0] && nextPosition[0] > targetPoint[0]) {
+    targetPointIndex =
+      targetPointIndex === chaikinPoints.length - 1 ? 0 : targetPointIndex + 1;
+  }
+
+  spherePosition = nextPosition;
+
+  render();
+  if (isAnimating) requestAnimationFrame(animate);
+};
