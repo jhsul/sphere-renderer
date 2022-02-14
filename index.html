@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <script type="text/javascript" src="lib/webgl-utils.js"></script>
+  <script type="text/javascript" src="lib/initShaders.js"></script>
+
+  <script type="text/javascript" src="lib/MV.js"></script>
+  <script type="text/javascript" src="index.js"></script>
+
+  <script id="vertex-shader" type="x-shader/x-vertex">
+
+
+    attribute vec4 vPosition;
+    attribute vec4 vNormal;
+
+    uniform vec4 lightPosition;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform mat4 translationMatrix;
+
+    uniform bool isChaikin;
+
+    varying vec3 L, N, V;
+
+    void main()
+    {
+      if(isChaikin) {
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+      }
+      else {
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
+        L = normalize(lightPosition.xyz - pos);
+
+        N = normalize(modelViewMatrix * vNormal).xyz;
+
+
+        V = normalize(-pos);
+        gl_Position = projectionMatrix * modelViewMatrix * translationMatrix * vPosition;
+      }
+
+    	//fColor = vec4( 1.0, 0.0, 1.0, 1.0 );
+    }
+  </script>
+
+  <script id="fragment-shader" type="x-shader/x-fragment">
+
+    precision mediump float;
+
+    uniform bool isChaikin;
+
+
+    varying vec3 L, N, V;
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform float shininess;
+
+    void main()
+    {
+
+    	vec3 R = (2.0 * dot(L, N) * N) - L;
+
+        vec4 diffuse = diffuseProduct * dot(L, N);
+        vec4 ambient = ambientProduct;
+        vec4 specular = specularProduct * pow(max(dot(V, R), 0.0), shininess);
+
+        vec4 fColor = diffuse + specular + ambient;
+        fColor.a = 1.0;
+
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+
+        if(isChaikin) {
+          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        } else {
+          gl_FragColor = fColor;
+        }
+
+
+
+    }
+  </script>
+
+  <body onload="main();">
+    <div style="display: flex">
+      <canvas id="webgl" width="512" height="512"></canvas>
+      <div style="display: flex; flex-direction: column">
+        <b>Controls (case insensitive)</b>
+        <ul>
+          <li>M: Toggle wireframe/shading</li>
+          <li>Q: Decrease sphere subdivisions (min 1)</li>
+          <li>E: Increase sphere subdivisions (max 8)</li>
+          <li>A: Toggle animation</li>
+          <li>J: Decrease curve subdivisions (min 1)</li>
+          <li>I: Increase curve subdivisions (max 8)</li>
+          <li>L: Toggle Gouraud/Phong</li>
+        </ul>
+        <i>CS 4731 homework 2 submission by Jack Sullivan</i>
+      </div>
+    </div>
+  </body>
+</html>
