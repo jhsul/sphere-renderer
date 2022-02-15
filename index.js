@@ -14,6 +14,7 @@ let sphereNormals = [];
 
 let isAnimating = false;
 let isWireframe = false;
+let isGouraud = false;
 
 // View bounds for the orthogonal projection matrix
 const view = {
@@ -216,6 +217,12 @@ const keypressHandler = (e) => {
       isWireframe ^= true;
       render();
       break;
+
+    case "l":
+    case "L":
+      isGouraud ^= true;
+      render();
+      break;
     default:
       return;
   }
@@ -269,8 +276,13 @@ const drawSphere = () => {
     flatten(translateMatrix)
   );
 
+  // Set isWireframe
   const isWireframeLoc = gl.getUniformLocation(program, "isWireframe");
   gl.uniform1i(isWireframeLoc, isWireframe);
+
+  // Set isGouraud
+  const isGouraudLoc = gl.getUniformLocation(program, "isGouraud");
+  gl.uniform1i(isGouraudLoc, isGouraud);
 
   const vBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
@@ -335,7 +347,10 @@ const animate = () => {
   const nextPosition = add(spherePosition, v);
 
   // Check if overshooting (only use x coord lul)
-  if (spherePosition[0] < targetPoint[0] && nextPosition[0] > targetPoint[0]) {
+  if (
+    (spherePosition[0] < targetPoint[0] && nextPosition[0] > targetPoint[0]) ||
+    (spherePosition[0] > targetPoint[0] && nextPosition[0] < targetPoint[0])
+  ) {
     targetPointIndex =
       targetPointIndex === chaikinPoints.length - 1 ? 0 : targetPointIndex + 1;
   }

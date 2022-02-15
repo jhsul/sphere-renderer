@@ -7,6 +7,7 @@
   <script type="text/javascript" src="index.js"></script>
 
   <script id="vertex-shader" type="x-shader/x-vertex">
+    precision mediump float;
 
 
     attribute vec4 vPosition;
@@ -19,8 +20,12 @@
 
     uniform bool isChaikin;
     uniform bool isWireframe;
+    uniform bool isGouraud;
 
     varying vec3 L, N, V;
+    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+    uniform float shininess;
+    varying vec4 gouraudColor;
 
     void main()
     {
@@ -38,6 +43,17 @@
         gl_Position = projectionMatrix * modelViewMatrix * translationMatrix * vPosition;
       }
 
+      if(isGouraud) {
+        vec3 R = (2.0 * dot(L, N) * N) - L;
+
+        vec4 diffuse = diffuseProduct * dot(L, N);
+        vec4 ambient = ambientProduct;
+        vec4 specular = specularProduct * pow(max(dot(V, R), 0.0), shininess);
+
+        gouraudColor = diffuse + specular + ambient;
+        gouraudColor.a = 1.0;
+      }
+
     	//fColor = vec4( 1.0, 0.0, 1.0, 1.0 );
     }
   </script>
@@ -48,32 +64,39 @@
 
     uniform bool isChaikin;
     uniform bool isWireframe;
+    uniform bool isGouraud;
 
 
     varying vec3 L, N, V;
     uniform vec4 ambientProduct, diffuseProduct, specularProduct;
     uniform float shininess;
 
+    varying vec4 gouraudColor;
+
+
     void main()
     {
 
     	vec3 R = (2.0 * dot(L, N) * N) - L;
 
-        vec4 diffuse = diffuseProduct * dot(L, N);
-        vec4 ambient = ambientProduct;
-        vec4 specular = specularProduct * pow(max(dot(V, R), 0.0), shininess);
+      vec4 diffuse = diffuseProduct * dot(L, N);
+      vec4 ambient = ambientProduct;
+      vec4 specular = specularProduct * pow(max(dot(V, R), 0.0), shininess);
 
-        vec4 fColor = diffuse + specular + ambient;
-        fColor.a = 1.0;
+      vec4 fColor = diffuse + specular + ambient;
+      fColor.a = 1.0;
 
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+      //gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 
         if(isChaikin) {
           gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
         } else if(isWireframe){
           gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        } else if (isGouraud) {
+          gl_FragColor = gouraudColor;
         } else {
           gl_FragColor = fColor;
+
         }
 
 
